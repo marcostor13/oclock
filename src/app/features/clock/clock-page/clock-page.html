@@ -1,0 +1,296 @@
+<div class="min-h-screen bg-background flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-sm space-y-4">
+
+    <!-- Loading / Submitting -->
+    @if (step() === 'loading' || step() === 'submitting') {
+      <div class="flex flex-col items-center gap-4 py-16">
+        <div
+          class="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin"
+          role="status"
+          aria-label="Loading"
+        ></div>
+        <p class="font-body text-body-md text-on-surface-variant">
+          {{ step() === 'submitting' ? 'Recording...' : 'Loading...' }}
+        </p>
+      </div>
+    }
+
+    <!-- Error -->
+    @else if (step() === 'error') {
+      <div class="bg-surface-container-lowest rounded-2xl shadow-card p-8 text-center space-y-5">
+        <span class="material-symbols-outlined text-5xl text-error" aria-hidden="true">error_outline</span>
+        <div class="space-y-1">
+          <h2 class="font-display text-headline-md font-bold text-on-surface">Something went wrong</h2>
+          <p class="font-body text-body-md text-on-surface-variant">{{ errorMessage() }}</p>
+        </div>
+        <button
+          type="button"
+          (click)="resetFlow()"
+          class="w-full bg-primary text-on-primary font-display text-label-sm font-semibold px-6 py-3 rounded-xl hover:bg-primary-strong transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    }
+
+    <!-- HU-1.2 / HU-1.3 — Geo check (blocking) -->
+    @else if (step() === 'geo') {
+      <div class="bg-surface-container-lowest rounded-2xl shadow-card p-8 space-y-6">
+
+        <!-- Account header -->
+        <div class="text-center space-y-3">
+          <div
+            class="h-16 w-16 rounded-2xl bg-primary-fixed mx-auto flex items-center justify-center"
+            aria-hidden="true"
+          >
+            <span class="font-display text-headline-md font-bold text-on-primary-fixed-variant">
+              {{ account()?.name?.charAt(0)?.toUpperCase() ?? '?' }}
+            </span>
+          </div>
+          <h1 class="font-display text-headline-md font-bold text-on-surface">
+            {{ account()?.name }}
+          </h1>
+        </div>
+
+        @if (geoLoading()) {
+          <!-- Waiting for permission -->
+          <div class="flex items-center justify-center gap-3 py-4">
+            <div class="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-hidden="true"></div>
+            <p class="font-body text-body-sm text-on-surface-variant">Requesting location...</p>
+          </div>
+        } @else if (geoError()) {
+          <!-- HU-1.2: location denied — BLOCKING, no Continue button -->
+          <div class="rounded-xl border border-error-container bg-error-container/40 p-4 space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[20px] text-error" aria-hidden="true">location_off</span>
+              <p class="font-display text-label-sm font-semibold text-error">Location access required</p>
+            </div>
+            <p class="font-body text-body-sm text-on-surface-variant">
+              You must enable location permissions to clock in or out.
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="retryGeo()"
+            class="w-full bg-surface-container text-on-surface border border-outline-variant font-display text-label-sm font-semibold px-6 py-3 rounded-xl hover:bg-surface-container-high transition-colors"
+          >
+            Retry
+          </button>
+        } @else if (!canProceed()) {
+          <!-- HU-1.3: outside 10 m radius — BLOCKING -->
+          <div class="rounded-xl border border-error-container bg-error-container/40 p-4 space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[20px] text-error" aria-hidden="true">location_searching</span>
+              <p class="font-display text-label-sm font-semibold text-error">Too far from location</p>
+            </div>
+            <p class="font-body text-body-sm text-on-surface-variant">
+              You are {{ distanceMeters()! | number: '1.0-0' }} m away.
+              You are too far from the location to clock in/out.
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="retryGeo()"
+            class="w-full bg-surface-container text-on-surface border border-outline-variant font-display text-label-sm font-semibold px-6 py-3 rounded-xl hover:bg-surface-container-high transition-colors"
+          >
+            Retry
+          </button>
+        }
+
+      </div>
+    }
+
+    <!-- HU-1.4 — Action selection -->
+    @else if (step() === 'action') {
+      <div class="bg-surface-container-lowest rounded-2xl shadow-card p-8 space-y-6">
+        <div class="text-center space-y-1">
+          <p class="font-body text-label-xs uppercase tracking-wider text-on-surface-variant">
+            {{ account()?.name }}
+          </p>
+          <h2 class="font-display text-headline-md font-bold text-on-surface">
+            What would you like to do?
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3" role="group" aria-label="Clock action">
+          <button
+            type="button"
+            (click)="selectAction('in')"
+            class="flex flex-col items-center gap-3 py-8 px-4 rounded-xl border-2 border-primary bg-primary-fixed text-on-primary-fixed-variant transition-all hover:bg-primary-fixed-dim"
+          >
+            <span class="material-symbols-outlined text-4xl" aria-hidden="true">login</span>
+            <span class="font-display text-label-sm font-semibold">Check In</span>
+          </button>
+
+          <button
+            type="button"
+            (click)="selectAction('out')"
+            class="flex flex-col items-center gap-3 py-8 px-4 rounded-xl border-2 border-outline-variant bg-surface-container text-on-surface-variant transition-all hover:border-primary/50 hover:bg-surface-container-high"
+          >
+            <span class="material-symbols-outlined text-4xl" aria-hidden="true">logout</span>
+            <span class="font-display text-label-sm font-semibold">Check Out</span>
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- HU-1.5 — Form (check-in: dept + pos + clockId; check-out: clockId only) -->
+    @else if (step() === 'form') {
+      <div class="bg-surface-container-lowest rounded-2xl shadow-card p-8 space-y-6">
+        <div class="text-center space-y-1">
+          <p class="font-body text-label-xs uppercase tracking-wider text-on-surface-variant">
+            {{ clockType() === 'in' ? 'Check In' : 'Check Out' }} — {{ account()?.name }}
+          </p>
+          <h2 class="font-display text-headline-md font-bold text-on-surface">
+            {{ clockType() === 'in' ? 'Select your position' : 'Enter your ID' }}
+          </h2>
+        </div>
+
+        @if (clockType() === 'in') {
+          @if (checkInSubStep() === 'id') {
+            <!-- Sub-step 1: enter Clock ID to look up positions -->
+            <form [formGroup]="clockIdForm" (ngSubmit)="lookupEmployee()" class="space-y-4">
+              <div class="space-y-1.5">
+                <label for="ci-clockid" class="font-display text-label-sm text-on-surface-variant">Employee Clock ID</label>
+                <input
+                  id="ci-clockid"
+                  type="text"
+                  formControlName="clockId"
+                  placeholder="e.g. EMP001"
+                  autocomplete="off"
+                  class="w-full px-4 py-3 rounded-xl bg-surface-container border border-outline-variant focus:border-primary focus:outline-none font-body text-body-md text-on-surface placeholder:text-on-surface-variant/50 transition-colors"
+                />
+                @if (lookupError()) {
+                  <p class="font-body text-label-xs text-error mt-1.5" role="alert">{{ lookupError() }}</p>
+                }
+              </div>
+
+              <button
+                type="submit"
+                [disabled]="clockIdForm.invalid || isLookingUp()"
+                class="w-full flex items-center justify-center gap-2 bg-primary text-on-primary font-display text-label-sm font-semibold px-6 py-3 rounded-xl hover:bg-primary-strong transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                @if (isLookingUp()) {
+                  <span class="material-symbols-outlined animate-spin text-[18px]" aria-hidden="true">progress_activity</span>
+                }
+                {{ isLookingUp() ? 'Looking up...' : 'Find Positions' }}
+              </button>
+            </form>
+          } @else {
+            <!-- Sub-step 2: confirm employee + select position -->
+            <div class="space-y-4">
+              <div class="rounded-xl bg-surface-container p-4">
+                <p class="font-display text-label-xs uppercase tracking-wider text-on-surface-variant mb-1">Employee</p>
+                <p class="font-display text-label-sm font-semibold text-on-surface">{{ employeeInfo()?.employeeName }}</p>
+                <p class="font-body text-body-sm text-on-surface-variant">{{ employeeInfo()?.employeeIdNumber }}</p>
+              </div>
+
+              <form [formGroup]="positionForm" (ngSubmit)="submitCheckIn()" class="space-y-4">
+                <div class="space-y-1.5">
+                  <label for="ci-position" class="font-display text-label-sm text-on-surface-variant">Position</label>
+                  <select
+                    id="ci-position"
+                    formControlName="positionId"
+                    class="w-full px-4 py-3 rounded-xl bg-surface-container border border-outline-variant focus:border-primary focus:outline-none font-body text-body-md text-on-surface transition-colors appearance-none cursor-pointer"
+                  >
+                    <option value="">Select position...</option>
+                    @for (pos of (employeeInfo()?.positions ?? []); track pos.id) {
+                      <option [value]="pos.id">{{ pos.name }}</option>
+                    }
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  [disabled]="positionForm.invalid"
+                  class="w-full bg-primary text-on-primary font-display text-label-sm font-semibold px-6 py-3 rounded-xl hover:bg-primary-strong transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Clock In
+                </button>
+              </form>
+
+              <button
+                type="button"
+                (click)="backToIdStep()"
+                class="w-full text-on-surface-variant font-display text-label-sm hover:text-on-surface transition-colors"
+              >
+                Change ID
+              </button>
+            </div>
+          }
+        } @else {
+          <form [formGroup]="checkOutForm" (ngSubmit)="submitCheckOut()" class="space-y-4">
+            <div class="space-y-1.5">
+              <label for="co-clockid" class="font-display text-label-sm text-on-surface-variant">Employee Clock ID</label>
+              <input
+                id="co-clockid"
+                type="text"
+                formControlName="clockId"
+                placeholder="e.g. EMP001"
+                autocomplete="off"
+                class="w-full px-4 py-3 rounded-xl bg-surface-container border border-outline-variant focus:border-primary focus:outline-none font-body text-body-md text-on-surface placeholder:text-on-surface-variant/50 transition-colors"
+              />
+            </div>
+
+            <button
+              type="submit"
+              [disabled]="checkOutForm.invalid"
+              class="w-full bg-primary text-on-primary font-display text-label-sm font-semibold px-6 py-3 rounded-xl hover:bg-primary-strong transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Clock Out
+            </button>
+          </form>
+        }
+
+        <button
+          type="button"
+          (click)="resetFlow()"
+          class="w-full text-on-surface-variant font-display text-label-sm hover:text-on-surface transition-colors"
+        >
+          ← Back
+        </button>
+      </div>
+    }
+
+    <!-- HU-1.6 — Success (auto-resets after 5 s) -->
+    @else if (step() === 'success') {
+      <div class="bg-surface-container-lowest rounded-2xl shadow-card p-8 text-center space-y-6">
+        <div
+          class="h-16 w-16 rounded-full bg-success-container mx-auto flex items-center justify-center"
+          aria-hidden="true"
+        >
+          <span class="material-symbols-outlined text-4xl text-success fill">check_circle</span>
+        </div>
+
+        <div class="space-y-1">
+          <h2 class="font-display text-headline-md font-bold text-on-surface">
+            {{ successType() === 'in' ? 'Checked In' : 'Checked Out' }} Successfully
+          </h2>
+          <p class="font-body text-body-sm text-on-surface-variant">{{ account()?.name }}</p>
+        </div>
+
+        <div class="rounded-xl bg-surface-container p-4 space-y-3 text-left">
+          <div class="flex justify-between gap-2">
+            <span class="font-display text-label-sm text-on-surface-variant">Time</span>
+            <span class="font-display text-label-sm text-on-surface">
+              @if (successType() === 'in') {
+                {{ successRecord()?.checkin | date: 'hh:mm a' }}
+              } @else {
+                {{ successRecord()?.checkout | date: 'hh:mm a' }}
+              }
+            </span>
+          </div>
+          @if (successType() === 'in' && successRecord()?.positionName) {
+            <div class="flex justify-between gap-2">
+              <span class="font-display text-label-sm text-on-surface-variant">Position</span>
+              <span class="font-display text-label-sm text-on-surface">{{ successRecord()?.positionName }}</span>
+            </div>
+          }
+        </div>
+
+        <p class="font-body text-label-xs text-on-surface-variant">Returning to home screen in a few seconds...</p>
+      </div>
+    }
+
+  </div>
+</div>

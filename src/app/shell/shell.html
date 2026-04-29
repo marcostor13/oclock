@@ -1,0 +1,194 @@
+<div class="min-h-screen flex bg-background">
+
+  <!-- Mobile backdrop -->
+  @if (sidebarOpen()) {
+    <div
+      class="fixed inset-0 bg-scrim/50 z-30 md:hidden"
+      aria-hidden="true"
+      (click)="closeSidebar()"
+    ></div>
+  }
+
+  <!-- Sidebar -->
+  <nav
+    class="fixed left-0 top-0 h-full w-64 z-40 flex flex-col bg-surface-container-low border-r border-outline-variant/30 px-6 py-8 transition-transform duration-300 md:translate-x-0"
+    [class]="sidebarOpen() ? 'translate-x-0' : '-translate-x-full'"
+    aria-label="Primary navigation"
+  >
+    <div class="mb-10 px-2 flex items-center justify-between">
+      <div>
+        <img
+          src="logo_orange.svg"
+          alt="Oclock"
+          class="h-10 w-auto"
+          aria-label="Oclock Backoffice"
+        />
+        <p class="font-body text-label-xs uppercase text-on-surface-variant tracking-wider mt-1">Backoffice</p>
+      </div>
+      <button
+        type="button"
+        (click)="closeSidebar()"
+        class="md:hidden p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"
+        aria-label="Close navigation"
+      >
+        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
+      </button>
+    </div>
+
+    <ul class="flex-1 space-y-1" role="list">
+      @for (item of navItems; track item.route) {
+        <li>
+          <a
+            [routerLink]="item.route"
+            routerLinkActive="bg-primary-fixed text-on-primary-fixed-variant font-semibold"
+            [routerLinkActiveOptions]="{ exact: false }"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-display text-label-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors duration-200"
+            aria-current="false"
+          >
+            <span class="material-symbols-outlined text-[20px]" aria-hidden="true">{{ item.icon }}</span>
+            {{ item.label }}
+          </a>
+        </li>
+      }
+    </ul>
+
+    <div class="mt-auto space-y-1">
+      <a
+        routerLink="/profile"
+        routerLinkActive="bg-primary-fixed text-on-primary-fixed-variant font-semibold"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-display text-label-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors duration-200"
+      >
+        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">manage_accounts</span>
+        Profile
+      </a>
+      <button
+        type="button"
+        (click)="logout()"
+        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-display text-label-sm text-error hover:bg-error-container/30 transition-colors duration-200"
+      >
+        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">logout</span>
+        Sign out
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main column -->
+  <div class="flex-1 md:ml-64 flex flex-col min-h-screen">
+    <!-- Top bar -->
+    <header
+      class="sticky top-0 z-20 h-16 px-4 md:px-8 flex items-center justify-between bg-surface-container-lowest border-b border-outline-variant/30"
+    >
+      <div class="flex items-center gap-3 flex-1 min-w-0">
+        <!-- Hamburger (mobile only) -->
+        <button
+          type="button"
+          (click)="openSidebar()"
+          class="md:hidden p-2 -ml-1 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors shrink-0"
+          aria-label="Open navigation"
+          aria-expanded="false"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">menu</span>
+        </button>
+
+        <div class="flex items-center gap-2 w-full max-w-md">
+          <span class="material-symbols-outlined text-on-surface-variant hidden sm:block" aria-hidden="true">search</span>
+          <input
+            type="search"
+            aria-label="Search"
+            placeholder="Search..."
+            class="w-full bg-transparent border-0 outline-none focus:ring-0 text-on-surface placeholder:text-on-surface-variant font-body text-body-md"
+          />
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <div class="relative">
+          <button
+            type="button"
+            (click)="toggleNotif()"
+            class="relative p-2 rounded-full text-on-surface-variant hover:bg-surface-container transition-colors"
+            [attr.aria-label]="alerts.count() > 0 ? 'Notifications (' + alerts.count() + ' alerts)' : 'Notifications'"
+            [attr.aria-expanded]="notifOpen()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
+            @if (alerts.count() > 0) {
+              <span
+                class="absolute top-1 right-1 h-4 min-w-4 px-1 rounded-full bg-error text-on-error font-display text-[10px] font-bold flex items-center justify-center leading-none"
+                aria-hidden="true"
+              >{{ alerts.count() > 99 ? '99+' : alerts.count() }}</span>
+            }
+          </button>
+
+          @if (notifOpen()) {
+            <div
+              class="fixed inset-0 z-30"
+              aria-hidden="true"
+              (click)="closeNotif()"
+            ></div>
+            <div
+              class="absolute right-0 top-full mt-2 w-80 bg-surface-container-lowest rounded-2xl shadow-modal z-40 overflow-hidden"
+              role="dialog"
+              aria-label="Notifications panel"
+            >
+              <div class="px-4 py-3 border-b border-outline-variant/30 flex items-center justify-between">
+                <h3 class="font-display text-label-sm font-semibold text-on-surface">Notifications</h3>
+                @if (alerts.count() > 0) {
+                  <span class="font-body text-label-xs text-on-surface-variant">
+                    {{ alerts.count() }} alert{{ alerts.count() === 1 ? '' : 's' }}
+                  </span>
+                }
+              </div>
+              @if (alerts.notifications().length === 0) {
+                <div class="px-4 py-8 text-center">
+                  <span class="material-symbols-outlined text-3xl text-on-surface-variant/40" aria-hidden="true">notifications_none</span>
+                  <p class="font-body text-body-sm text-on-surface-variant mt-2">No new notifications</p>
+                </div>
+              } @else {
+                <ul role="list">
+                  @for (notif of alerts.notifications(); track notif.accountId) {
+                    <li>
+                      <button
+                        type="button"
+                        (click)="goToAlert(notif.accountId)"
+                        class="w-full px-4 py-3 flex items-center justify-between gap-3 hover:bg-surface-container transition-colors border-b border-outline-variant/20 last:border-0"
+                      >
+                        <div class="flex items-center gap-3 min-w-0">
+                          <span class="material-symbols-outlined text-warning text-[20px] shrink-0" aria-hidden="true">warning</span>
+                          <div class="min-w-0 text-left">
+                            <p class="font-body text-body-sm text-on-surface truncate">{{ notif.accountName }}</p>
+                            <p class="font-body text-label-xs text-on-surface-variant">
+                              {{ notif.count }} incomplete marking{{ notif.count === 1 ? '' : 's' }}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          class="shrink-0 h-6 min-w-6 px-1.5 rounded-full bg-error text-on-error font-display text-[11px] font-bold flex items-center justify-center leading-none"
+                          aria-hidden="true"
+                        >{{ notif.count }}</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        </div>
+        <a
+          routerLink="/profile"
+          class="h-9 w-9 rounded-full bg-primary-fixed flex items-center justify-center font-display font-semibold text-label-sm text-on-primary-fixed-variant hover:ring-2 hover:ring-primary transition-all"
+          [attr.aria-label]="'Profile: ' + (currentUser()?.name ?? '')"
+        >
+          {{ userInitials() }}
+        </a>
+      </div>
+    </header>
+
+    <!-- Page canvas -->
+    <main class="p-4 md:p-8 flex-1">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<app-toast-container />
+<app-confirm-dialog />

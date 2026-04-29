@@ -1,0 +1,317 @@
+<div class="space-y-8">
+
+  <!-- Page header -->
+  <div class="flex items-center gap-4">
+    <button
+      type="button"
+      (click)="goBack()"
+      class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"
+      aria-label="Back to sent reports"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+    </button>
+    <div class="flex-1 min-w-0">
+      <h1 class="font-display text-headline-lg font-bold text-on-surface">Report Detail</h1>
+      @if (report()) {
+        <p class="font-body text-body-sm text-on-surface-variant">
+          Sent by {{ report()!.sentBy }} on {{ report()!.createdAt | date:'mediumDate' }}
+        </p>
+      }
+    </div>
+    @if (records().length > 0) {
+      <button
+        type="button"
+        (click)="exportExcel()"
+        [disabled]="isExporting()"
+        class="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-outline-variant font-display text-label-sm text-on-surface hover:bg-surface-container transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
+        <span class="hidden sm:inline">{{ isExporting() ? 'Exporting...' : 'Markings Excel' }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- Loading -->
+  @if (isLoading()) {
+    <div class="p-12 flex items-center justify-center gap-3">
+      <div class="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" role="status" aria-label="Loading"></div>
+      <p class="font-body text-body-md text-on-surface-variant">Loading report...</p>
+    </div>
+  }
+
+  @else if (loadError()) {
+    <div class="rounded-xl border border-error-container bg-error-container/20 px-5 py-4 flex items-center gap-3">
+      <span class="material-symbols-outlined text-error shrink-0" aria-hidden="true">error</span>
+      <p class="font-body text-body-sm text-error">{{ loadError() }}</p>
+    </div>
+  }
+
+  @else {
+    <!-- Summary cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-surface-container-lowest rounded-2xl shadow-card p-5 space-y-1">
+        <p class="font-body text-label-xs text-on-surface-variant uppercase tracking-wider">Clock Records</p>
+        <p class="font-display text-headline-md font-bold text-on-surface">{{ records().length }}</p>
+      </div>
+      <div class="bg-surface-container-lowest rounded-2xl shadow-card p-5 space-y-1">
+        <p class="font-body text-label-xs text-on-surface-variant uppercase tracking-wider">Employees</p>
+        <p class="font-display text-headline-md font-bold text-on-surface">{{ employeeSummary().length }}</p>
+      </div>
+      <div class="bg-surface-container-lowest rounded-2xl shadow-card p-5 space-y-1">
+        <p class="font-body text-label-xs text-on-surface-variant uppercase tracking-wider">Total Hours</p>
+        <p class="font-display text-headline-md font-bold" [class]="totalHours() > 40 ? 'text-error' : 'text-primary'">
+          {{ formatHours(totalHours()) }}
+        </p>
+      </div>
+      <div class="bg-surface-container-lowest rounded-2xl shadow-card p-5 space-y-1">
+        <p class="font-body text-label-xs text-on-surface-variant uppercase tracking-wider">Period</p>
+        <p class="font-display text-headline-md font-bold text-on-surface truncate">{{ report()?.workPeriodLabel }}</p>
+      </div>
+    </div>
+
+    <!-- Read-only sent banner -->
+    <div class="rounded-xl border border-success-container bg-success-container/30 px-5 py-3 flex items-center gap-3">
+      <span class="material-symbols-outlined text-success shrink-0" aria-hidden="true">lock</span>
+      <p class="font-body text-body-sm text-on-surface">
+        This report has been submitted. All records are <span class="font-semibold">read-only</span>.
+      </p>
+    </div>
+
+    <!-- ═══════ PAYROLL RECORDS SECTION ═══════ -->
+    @if (payrollRecords().length > 0) {
+      <div class="bg-surface-container-lowest rounded-2xl shadow-card overflow-hidden">
+        <div class="px-6 py-4 border-b border-outline-variant/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 class="font-display text-label-sm font-semibold text-on-surface">Hour Records</h2>
+            <p class="font-body text-label-xs text-on-surface-variant mt-0.5">
+              {{ payrollRecords().length }} record(s) · Regular: {{ formatHours(payrollRegularHours()) }} · Overtime: {{ formatHours(payrollOvertimeHours()) }}
+            </p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              (click)="exportPayroll('xlsx')"
+              [disabled]="isExportingPayroll()"
+              class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-outline-variant font-display text-label-sm text-on-surface hover:bg-surface-container transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <span class="material-symbols-outlined text-[16px]" aria-hidden="true">table_view</span>
+              Excel
+            </button>
+            <button
+              type="button"
+              (click)="exportPayroll('pdf')"
+              [disabled]="isExportingPayroll()"
+              class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-outline-variant font-display text-label-sm text-on-surface hover:bg-surface-container transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <span class="material-symbols-outlined text-[16px]" aria-hidden="true">picture_as_pdf</span>
+              PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- Hour totals -->
+        <div class="px-6 py-4 grid grid-cols-2 gap-4 border-b border-outline-variant/20">
+          <div class="space-y-0.5">
+            <p class="font-body text-label-xs text-on-surface-variant uppercase tracking-wider">Regular Hours</p>
+            <p class="font-display text-title-md font-bold text-on-surface">{{ formatHours(payrollRegularHours()) }}</p>
+          </div>
+          <div class="space-y-0.5">
+            <p class="font-body text-label-xs text-on-surface-variant uppercase tracking-wider">Overtime Hours</p>
+            <p class="font-display text-title-md font-bold" [class]="payrollOvertimeHours() > 0 ? 'text-error' : 'text-on-surface-variant'">
+              {{ formatHours(payrollOvertimeHours()) }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Hour records table (desktop) -->
+        <div class="hidden md:block">
+          <table class="w-full" role="table">
+            <thead>
+              <tr class="border-b border-outline-variant/20 bg-surface-container/30">
+                <th scope="col" class="px-6 py-3 text-left font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Employee</th>
+                <th scope="col" class="px-6 py-3 text-left font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Position</th>
+                <th scope="col" class="px-6 py-3 text-right font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Hours</th>
+                <th scope="col" class="px-6 py-3 text-center font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of payrollRecords(); track row.id) {
+                <tr class="border-b border-outline-variant/10 hover:bg-surface-container/20 transition-colors">
+                  <td class="px-6 py-3 font-body text-body-sm text-on-surface">{{ row.employeeName || '—' }}</td>
+                  <td class="px-6 py-3 font-body text-body-sm text-on-surface-variant">{{ row.positionName || '—' }}</td>
+                  <td class="px-6 py-3 text-right font-display text-label-sm font-semibold" [class]="row.isOverTime ? 'text-error' : 'text-on-surface'">
+                    {{ row.quantity.toFixed(2) }}h
+                  </td>
+                  <td class="px-6 py-3 text-center">
+                    @if (row.isOverTime) {
+                      <span class="inline-flex items-center bg-error-container text-on-error-container font-display text-label-xs px-2.5 py-0.5 rounded-full">OT</span>
+                    } @else {
+                      <span class="inline-flex items-center bg-primary-fixed text-on-primary-fixed-variant font-display text-label-xs px-2.5 py-0.5 rounded-full">REG</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Payroll cards (mobile) -->
+        <div class="md:hidden divide-y divide-outline-variant/20">
+          @for (row of payrollRecords(); track row.id) {
+            <div class="px-5 py-4 space-y-1">
+              <div class="flex items-center justify-between gap-2">
+                <p class="font-display text-label-sm font-semibold text-on-surface">{{ row.employeeName || '—' }}</p>
+                @if (row.isOverTime) {
+                  <span class="inline-flex items-center bg-error-container text-on-error-container font-display text-label-xs px-2 py-0.5 rounded-full">OT</span>
+                } @else {
+                  <span class="inline-flex items-center bg-primary-fixed text-on-primary-fixed-variant font-display text-label-xs px-2 py-0.5 rounded-full">REG</span>
+                }
+              </div>
+              <p class="font-body text-body-sm text-on-surface-variant">{{ row.positionName }}</p>
+              <p class="font-display text-label-sm font-semibold" [class]="row.isOverTime ? 'text-error' : 'text-on-surface'">
+                {{ row.quantity.toFixed(2) }}h
+              </p>
+            </div>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="bg-surface-container-lowest rounded-2xl shadow-card p-8 flex items-center gap-4">
+        <span class="material-symbols-outlined text-3xl text-on-surface-variant/40" aria-hidden="true">receipt_long</span>
+        <p class="font-body text-body-md text-on-surface-variant">No payroll records generated for this report.</p>
+      </div>
+    }
+
+    <!-- Employee summary table -->
+    @if (employeeSummary().length > 0) {
+      <div class="bg-surface-container-lowest rounded-2xl shadow-card overflow-hidden">
+        <div class="px-6 py-4 border-b border-outline-variant/30">
+          <h2 class="font-display text-label-sm font-semibold text-on-surface">Hours by Employee</h2>
+        </div>
+        <div class="hidden md:block">
+          <table class="w-full" role="table">
+            <thead>
+              <tr class="border-b border-outline-variant/20">
+                <th scope="col" class="px-6 py-3 text-left font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Employee</th>
+                <th scope="col" class="px-6 py-3 text-left font-display text-label-xs uppercase tracking-wider text-on-surface-variant">ID Number</th>
+                <th scope="col" class="px-6 py-3 text-right font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Hours</th>
+                <th scope="col" class="px-6 py-3 text-right font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Overtime</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (emp of employeeSummary(); track emp.clockId) {
+                <tr class="border-b border-outline-variant/10">
+                  <td class="px-6 py-3">
+                    <div class="flex items-center gap-3">
+                      <div class="h-8 w-8 rounded-full bg-primary-fixed flex items-center justify-center shrink-0" aria-hidden="true">
+                        <span class="font-display text-label-xs font-bold text-on-primary-fixed-variant">
+                          {{ emp.name ? emp.name.charAt(0).toUpperCase() : '?' }}
+                        </span>
+                      </div>
+                      <span class="font-body text-body-sm text-on-surface">{{ emp.name }}</span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-3 font-body text-body-sm text-on-surface-variant">{{ emp.clockId }}</td>
+                  <td class="px-6 py-3 text-right">
+                    <span class="font-display text-label-sm font-semibold" [class]="emp.hours > 40 ? 'text-error' : 'text-on-surface'">
+                      {{ formatHours(emp.hours) }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-3 text-right">
+                    @if (emp.hours > 40) {
+                      <span class="inline-flex items-center gap-1 bg-error-container text-on-error-container font-display text-label-xs px-2.5 py-1 rounded-full">
+                        +{{ formatHours(emp.hours - 40) }}
+                      </span>
+                    } @else {
+                      <span class="font-body text-label-sm text-on-surface-variant">—</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="md:hidden divide-y divide-outline-variant/20">
+          @for (emp of employeeSummary(); track emp.clockId) {
+            <div class="px-5 py-4 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="h-9 w-9 rounded-full bg-primary-fixed flex items-center justify-center shrink-0" aria-hidden="true">
+                  <span class="font-display text-label-xs font-bold text-on-primary-fixed-variant">
+                    {{ emp.name ? emp.name.charAt(0).toUpperCase() : '?' }}
+                  </span>
+                </div>
+                <div class="min-w-0">
+                  <p class="font-body text-body-sm text-on-surface truncate">{{ emp.name }}</p>
+                  <p class="font-body text-label-xs text-on-surface-variant">{{ emp.clockId }}</p>
+                </div>
+              </div>
+              <span class="font-display text-label-sm font-semibold shrink-0" [class]="emp.hours > 40 ? 'text-error' : 'text-on-surface'">
+                {{ formatHours(emp.hours) }}
+              </span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Day-by-day records -->
+    @if (dayGroups().length > 0) {
+      <div class="space-y-4">
+        @for (day of dayGroups(); track day.date) {
+          <div class="bg-surface-container-lowest rounded-2xl shadow-card overflow-hidden">
+            <div class="px-6 py-4 border-b border-outline-variant/30 flex items-center justify-between gap-4">
+              <h2 class="font-display text-label-sm font-semibold text-on-surface">{{ day.label }}</h2>
+              <span class="font-display text-label-sm font-semibold" [class]="day.totalHours > 8 ? 'text-error' : 'text-success'">
+                {{ formatHours(day.totalHours) }}
+              </span>
+            </div>
+            <div class="hidden md:block">
+              <table class="w-full" role="table">
+                <thead>
+                  <tr class="border-b border-outline-variant/20">
+                    <th scope="col" class="px-6 py-3 text-left font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Employee</th>
+                    <th scope="col" class="px-6 py-3 text-center font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Check In</th>
+                    <th scope="col" class="px-6 py-3 text-center font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Check Out</th>
+                    <th scope="col" class="px-6 py-3 text-right font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Hours</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (record of day.records; track record.id) {
+                    <tr class="border-b border-outline-variant/10">
+                      <td class="px-6 py-3 font-body text-body-sm text-on-surface">{{ record.employeeName ?? '—' }}</td>
+                      <td class="px-6 py-3 text-center font-body text-body-sm text-on-surface">
+                        {{ record.checkin ? (record.checkin | date: 'hh:mm a') : '—' }}
+                      </td>
+                      <td class="px-6 py-3 text-center font-body text-body-sm text-on-surface">
+                        {{ record.checkout ? (record.checkout | date: 'hh:mm a') : '—' }}
+                      </td>
+                      <td class="px-6 py-3 text-right font-display text-label-sm">
+                        @if (calcHours(record) > 0) {
+                          {{ formatHours(calcHours(record)) }}
+                        } @else {
+                          <span class="text-on-surface-variant">—</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="md:hidden divide-y divide-outline-variant/20">
+              @for (record of day.records; track record.id) {
+                <div class="px-5 py-4 space-y-1">
+                  <p class="font-display text-label-sm font-semibold text-on-surface">{{ record.employeeName ?? '—' }}</p>
+                  <div class="flex gap-4 font-body text-body-sm text-on-surface">
+                    <span>In: {{ record.checkin ? (record.checkin | date: 'hh:mm a') : '—' }}</span>
+                    <span>Out: {{ record.checkout ? (record.checkout | date: 'hh:mm a') : '—' }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+</div>

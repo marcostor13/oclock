@@ -1,0 +1,200 @@
+<div class="space-y-8">
+
+  <!-- Page header -->
+  <div>
+    <h1 class="font-display text-headline-lg font-bold text-on-surface">Markings</h1>
+    <p class="font-body text-body-md text-on-surface-variant mt-1">Employee hours by account and date range</p>
+  </div>
+
+  <!-- Filters -->
+  <div class="bg-surface-container-lowest rounded-2xl shadow-card p-6">
+    <form [formGroup]="filterForm" (ngSubmit)="loadActivities()" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+
+      <div class="space-y-1.5">
+        <label for="account-select" class="font-display text-label-sm text-on-surface-variant">Account</label>
+        @if (isLoadingAccounts()) {
+          <div class="h-12 rounded-xl bg-surface-container animate-pulse"></div>
+        } @else {
+          <select
+            id="account-select"
+            formControlName="accountId"
+            class="w-full px-4 py-3 rounded-xl bg-surface-container border border-outline-variant focus:border-primary focus:outline-none font-body text-body-md text-on-surface transition-colors appearance-none cursor-pointer"
+          >
+            <option value="">Select account...</option>
+            @for (account of accounts(); track account.id) {
+              <option [value]="account.id">{{ account.name }}</option>
+            }
+          </select>
+        }
+      </div>
+
+      <div class="space-y-1.5">
+        <label for="start-date" class="font-display text-label-sm text-on-surface-variant">Start Date</label>
+        <input
+          id="start-date"
+          type="date"
+          formControlName="startDate"
+          class="w-full px-4 py-3 rounded-xl bg-surface-container border border-outline-variant focus:border-primary focus:outline-none font-body text-body-md text-on-surface transition-colors"
+        />
+      </div>
+
+      <div class="space-y-1.5">
+        <label for="end-date" class="font-display text-label-sm text-on-surface-variant">End Date</label>
+        <input
+          id="end-date"
+          type="date"
+          formControlName="endDate"
+          class="w-full px-4 py-3 rounded-xl bg-surface-container border border-outline-variant focus:border-primary focus:outline-none font-body text-body-md text-on-surface transition-colors"
+        />
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="filterForm.invalid || isLoadingEmployees()"
+        class="bg-primary text-on-primary font-display text-label-sm font-semibold px-6 py-3 rounded-xl hover:bg-primary-strong transition-colors disabled:opacity-40 disabled:cursor-not-allowed h-12 self-end"
+      >
+        {{ isLoadingEmployees() ? 'Loading...' : 'Apply' }}
+      </button>
+
+    </form>
+  </div>
+
+  <!-- Incomplete markings alert -->
+  @if (incompleteCount() > 0) {
+    <div class="rounded-xl border border-warning-container bg-warning-container/40 px-5 py-4 flex items-center gap-3">
+      <span class="material-symbols-outlined text-warning shrink-0" aria-hidden="true">warning</span>
+      <p class="font-body text-body-sm text-on-surface">
+        <span class="font-semibold">{{ incompleteCount() }} incomplete marking{{ incompleteCount() === 1 ? '' : 's' }}</span>
+        in this period — employees with missing check-in or check-out.
+      </p>
+    </div>
+  }
+
+  <!-- Export button -->
+  @if (employees().length > 0) {
+    <div class="flex justify-end">
+      <button
+        type="button"
+        (click)="exportExcel()"
+        [disabled]="isExporting()"
+        class="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-outline-variant font-display text-label-sm text-on-surface hover:bg-surface-container transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        @if (isExporting()) {
+          <span class="h-4 w-4 border-2 border-on-surface border-t-transparent rounded-full animate-spin" aria-hidden="true"></span>
+          Exporting...
+        } @else {
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
+          Export Excel
+        }
+      </button>
+    </div>
+  }
+
+  <!-- Employee table -->
+  <div class="bg-surface-container-lowest rounded-2xl shadow-card overflow-hidden">
+
+    @if (isLoadingEmployees()) {
+      <div class="p-12 flex items-center justify-center gap-3">
+        <div class="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" role="status" aria-label="Loading"></div>
+        <p class="font-body text-body-md text-on-surface-variant">Loading employees...</p>
+      </div>
+    } @else if (!hasLoaded()) {
+      <div class="p-12 text-center space-y-2">
+        <span class="material-symbols-outlined text-4xl text-on-surface-variant/40" aria-hidden="true">calendar_month</span>
+        <p class="font-body text-body-md text-on-surface-variant">Select an account and date range, then press Apply.</p>
+      </div>
+    } @else if (employees().length === 0) {
+      <div class="p-12 text-center space-y-2">
+        <span class="material-symbols-outlined text-4xl text-on-surface-variant/40" aria-hidden="true">person_off</span>
+        <p class="font-body text-body-md text-on-surface-variant">No employee records found for this period.</p>
+      </div>
+    } @else {
+
+      <!-- Desktop table -->
+      <div class="hidden md:block">
+        <table class="w-full" role="table">
+          <thead>
+            <tr class="border-b border-outline-variant/30">
+              <th scope="col" class="px-6 py-4 text-left font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Employee</th>
+              <th scope="col" class="px-6 py-4 text-left font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Clock ID</th>
+              <th scope="col" class="px-6 py-4 text-right font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Total Hours</th>
+              <th scope="col" class="px-6 py-4 text-right font-display text-label-xs uppercase tracking-wider text-on-surface-variant">Overtime</th>
+              <th scope="col" class="px-2 py-4"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (emp of employees(); track emp.employeeIdNumber) {
+              <tr
+                class="border-b border-outline-variant/20 hover:bg-surface-container/50 transition-colors cursor-pointer"
+                (click)="viewEmployee(emp)"
+              >
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="h-8 w-8 rounded-full bg-primary-fixed flex items-center justify-center shrink-0" aria-hidden="true">
+                      <span class="font-display text-label-xs font-bold text-on-primary-fixed-variant">
+                        {{ emp.employeeName ? emp.employeeName.charAt(0).toUpperCase() : '?' }}
+                      </span>
+                    </div>
+                    <span class="font-body text-body-md text-on-surface">{{ emp.employeeName }}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 font-body text-body-md text-on-surface-variant">{{ emp.employeeIdNumber }}</td>
+                <td class="px-6 py-4 text-right">
+                  <span class="font-display text-label-sm font-semibold" [class]="emp.totalHours > 40 ? 'text-error' : 'text-on-surface'">
+                    {{ formatHours(emp.totalHours) }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                  @if (emp.totalHours > 40) {
+                    <span class="inline-flex items-center gap-1 bg-error-container text-on-error-container font-display text-label-xs px-2.5 py-1 rounded-full">
+                      <span class="material-symbols-outlined text-[14px]" aria-hidden="true">schedule</span>
+                      +{{ formatHours(emp.totalHours - 40) }}
+                    </span>
+                  } @else {
+                    <span class="font-body text-label-sm text-on-surface-variant">—</span>
+                  }
+                </td>
+                <td class="px-4 py-4 text-right">
+                  <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">chevron_right</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile cards -->
+      <div class="md:hidden divide-y divide-outline-variant/20">
+        @for (emp of employees(); track emp.employeeIdNumber) {
+          <button
+            type="button"
+            (click)="viewEmployee(emp)"
+            class="w-full px-5 py-4 flex items-center justify-between gap-3 hover:bg-surface-container/50 transition-colors text-left"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="h-10 w-10 rounded-full bg-primary-fixed flex items-center justify-center shrink-0" aria-hidden="true">
+                <span class="font-display text-label-sm font-bold text-on-primary-fixed-variant">
+                  {{ emp.employeeName ? emp.employeeName.charAt(0).toUpperCase() : '?' }}
+                </span>
+              </div>
+              <div class="min-w-0">
+                <p class="font-body text-body-md text-on-surface truncate">{{ emp.employeeName }}</p>
+                <p class="font-body text-label-xs text-on-surface-variant">{{ emp.employeeIdNumber }}</p>
+              </div>
+            </div>
+            <div class="shrink-0 text-right">
+              <p class="font-display text-label-sm font-semibold" [class]="emp.totalHours > 40 ? 'text-error' : 'text-on-surface'">
+                {{ formatHours(emp.totalHours) }}
+              </p>
+              @if (emp.totalHours > 40) {
+                <p class="font-body text-label-xs text-error">Overtime</p>
+              }
+            </div>
+          </button>
+        }
+      </div>
+
+    }
+  </div>
+
+</div>

@@ -1,0 +1,94 @@
+<div class="space-y-8">
+
+  <!-- Page header -->
+  <div>
+    <h1 class="font-display text-headline-lg font-bold text-on-surface">QR Generator</h1>
+    <p class="font-body text-body-md text-on-surface-variant mt-1">Generate a QR code for employee clock-in at a specific account</p>
+  </div>
+
+  <!-- Account selector -->
+  <div class="bg-surface-container-lowest rounded-2xl shadow-card p-6 space-y-4">
+    <div class="space-y-1.5 max-w-sm">
+      <label for="qr-account-select" class="font-display text-label-sm text-on-surface-variant">Account</label>
+      @if (isLoadingAccounts()) {
+        <div class="h-12 rounded-xl bg-surface-container animate-pulse"></div>
+      } @else {
+        <select
+          id="qr-account-select"
+          (change)="onAccountChange($event)"
+          class="w-full px-4 py-3 rounded-xl bg-surface-container border border-outline-variant focus:border-primary focus:outline-none font-body text-body-md text-on-surface transition-colors appearance-none cursor-pointer"
+        >
+          <option value="">Select account...</option>
+          @for (account of accounts(); track account.id) {
+            <option [value]="account.id">{{ account.name }}</option>
+          }
+        </select>
+      }
+    </div>
+  </div>
+
+  <!-- QR result -->
+  @if (qrImageUrl()) {
+    <div class="bg-surface-container-lowest rounded-2xl shadow-card p-8 flex flex-col items-center gap-6">
+
+      <!-- Account label -->
+      <div class="text-center">
+        <p class="font-display text-title-md font-semibold text-on-surface">{{ selectedAccount()?.name }}</p>
+        <p class="font-body text-label-xs text-on-surface-variant mt-0.5">Clock-in QR Code</p>
+      </div>
+
+      <!-- QR image -->
+      <div class="rounded-2xl border-4 border-outline-variant/20 p-3 bg-white shadow-sm">
+        <img
+          [src]="qrImageUrl()!"
+          [alt]="'QR code for ' + selectedAccount()?.name"
+          width="256"
+          height="256"
+          class="block"
+        />
+      </div>
+
+      <!-- URL display -->
+      <div class="w-full max-w-md bg-surface-container rounded-xl px-4 py-3 flex items-center gap-3">
+        <span class="material-symbols-outlined text-on-surface-variant text-[18px] shrink-0" aria-hidden="true">link</span>
+        <p class="font-body text-body-sm text-on-surface truncate flex-1">{{ clockUrl() }}</p>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex flex-wrap gap-3 justify-center">
+        <button
+          type="button"
+          (click)="copyUrl()"
+          class="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-outline-variant font-display text-label-sm text-on-surface hover:bg-surface-container transition-colors"
+        >
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">{{ copySuccess() ? 'check' : 'content_copy' }}</span>
+          {{ copySuccess() ? 'Copied!' : 'Copy URL' }}
+        </button>
+
+        <button
+          type="button"
+          (click)="downloadQr()"
+          [disabled]="isDownloading()"
+          class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-on-primary font-display text-label-sm font-semibold hover:bg-primary-strong transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          @if (isDownloading()) {
+            <span class="h-4 w-4 border-2 border-on-primary border-t-transparent rounded-full animate-spin" aria-hidden="true"></span>
+            Downloading...
+          } @else {
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
+            Download QR
+          }
+        </button>
+      </div>
+
+    </div>
+  }
+
+  @else if (!isLoadingAccounts()) {
+    <div class="bg-surface-container-lowest rounded-2xl shadow-card p-12 text-center space-y-2">
+      <span class="material-symbols-outlined text-4xl text-on-surface-variant/40" aria-hidden="true">qr_code</span>
+      <p class="font-body text-body-md text-on-surface-variant">Select an account to generate a QR code.</p>
+    </div>
+  }
+
+</div>

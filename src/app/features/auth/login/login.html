@@ -1,0 +1,101 @@
+<div class="min-h-screen bg-background flex items-center justify-center px-6">
+  <div class="w-full max-w-[440px]">
+
+    <!-- Logo -->
+    <div class="mb-12 flex justify-center">
+      <img
+        src="/logo_orange.svg"
+        alt="Oclock"
+        width="140"
+        height="48"
+        class="h-12 w-auto"
+      />
+    </div>
+
+    <!-- Headline -->
+    <h1 class="font-display text-headline-lg md:text-display-xl text-on-surface mb-8 leading-tight">
+      Enter your <span class="font-bold">account</span>
+    </h1>
+
+    <!-- Form -->
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="space-y-3">
+
+      <!-- Error banner -->
+      @if (error()) {
+        <div
+          role="alert"
+          class="px-4 py-3 rounded-xl bg-error-container text-on-error-container font-body text-label-sm"
+        >
+          {{ error() }}
+        </div>
+      }
+
+      <!-- Email -->
+      <div>
+        <input
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          placeholder="admin@example.com"
+          class="w-full rounded-xl bg-surface-container-low border border-outline-variant/20 px-4 py-4 font-body text-body-md text-on-surface placeholder:text-on-surface-variant/50 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+          [attr.aria-invalid]="form.controls.email.invalid && form.controls.email.touched"
+        />
+        @if (form.controls.email.invalid && form.controls.email.touched) {
+          <span class="font-body text-label-xs text-error mt-1.5 block" role="alert">
+            Enter a valid email address.
+          </span>
+        }
+      </div>
+
+      <!-- Password -->
+      <div>
+        <div class="relative">
+          <input
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="current-password"
+            placeholder="••••••••••••"
+            class="w-full rounded-xl bg-surface-container-low border border-outline-variant/20 px-4 py-4 pr-12 font-body text-body-md text-on-surface placeholder:text-on-surface-variant/40 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+            [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched"
+          />
+          <button
+            type="button"
+            (click)="showPassword.set(!showPassword())"
+            class="absolute inset-y-0 right-0 flex items-center px-3 text-on-surface-variant hover:text-on-surface transition-colors"
+            [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+          >
+            <span class="material-symbols-outlined text-[20px]" aria-hidden="true">
+              {{ showPassword() ? 'visibility_off' : 'visibility' }}
+            </span>
+          </button>
+        </div>
+        @if (form.controls.password.invalid && form.controls.password.touched) {
+          <span class="font-body text-label-xs text-error mt-1.5 block" role="alert">
+            Password must be at least 8 characters.
+          </span>
+        }
+      </div>
+
+      <!-- Submit -->
+      <button
+        type="submit"
+        [disabled]="loading()"
+        class="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-gradient-to-r from-primary-sky to-primary-container text-on-primary font-display text-label-sm font-semibold hover:opacity-90 active:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed mt-1"
+      >
+        @if (loading()) {
+          <span class="material-symbols-outlined animate-spin text-[18px]" aria-hidden="true">progress_activity</span>
+        }
+        {{ loading() ? 'Signing in...' : 'Log in' }}
+      </button>
+
+      <!-- Forgot password -->
+      <a
+        routerLink="/forgot-password"
+        class="block font-body text-label-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded pt-1"
+      >
+        Forgot password?
+      </a>
+
+    </form>
+  </div>
+</div>

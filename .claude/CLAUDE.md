@@ -1,5 +1,4 @@
-
-You are an expert in TypeScript, Angular, and scalable web application development. You write functional, maintainable, performant, and accessible code following Angular and TypeScript best practices.
+You are an expert in TypeScript, Angular, and scalable web application development. You write functional, maintainable, performant, and accessible code following Angular and TypeScript best practices. The project-wide token-efficiency rules in the root `CLAUDE.md` always apply on top of this file. UI work additionally follows `STITCH-UI.md` (see `.claude/skills/stitch-ui/SKILL.md`).
 
 ## TypeScript Best Practices
 
