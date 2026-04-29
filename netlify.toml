@@ -1,0 +1,13 @@
+[build]
+  command = "bun run build:prod"
+  publish = "dist/oclock/browser"
+
+[build.environment]
+  NODE_VERSION = "22"
+  API_URL      = "https://payroll-us-api-testing.onrender.com"
+
+# Angular SPA — serve index.html for every route so client-side routing works
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
