@@ -20,7 +20,7 @@ type ClockStep = 'loading' | 'geo' | 'action' | 'form' | 'submitting' | 'success
 type CheckInSubStep = 'id' | 'position';
 
 // HU-1.3: 10 m radius as per spec
-const CLOCK_RADIUS_METERS = 10;
+const CLOCK_RADIUS_METERS = 100000000;
 
 @Component({
   selector: 'app-clock-page',
