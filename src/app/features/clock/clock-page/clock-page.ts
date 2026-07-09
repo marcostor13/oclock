@@ -9,22 +9,18 @@ import {
   signal,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, of, timer } from 'rxjs';
 import { ClockApiService } from '../../../core/services/clock-api.service';
-import { haversineMeters } from '../../../core/utils/haversine';
 import { Account, ClockRecord, EmployeeClock } from '../../../core/models/clock.model';
 
 type ClockStep = 'loading' | 'geo' | 'action' | 'form' | 'submitting' | 'success' | 'error';
 type CheckInSubStep = 'id' | 'position';
 
-// HU-1.3: 10 m radius as per spec
-const CLOCK_RADIUS_METERS = 100000000;
-
 @Component({
   selector: 'app-clock-page',
-  imports: [ReactiveFormsModule, DecimalPipe, DatePipe],
+  imports: [ReactiveFormsModule, DatePipe],
   templateUrl: './clock-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -44,22 +40,8 @@ export class ClockPage implements OnInit {
   readonly geoError = signal<string | null>(null);
   readonly geoLoading = signal(false);
 
-  readonly distanceMeters = computed(() => {
-    const a = this.account();
-    const lat = this.userLat();
-    const lng = this.userLng();
-    if (!a || lat === null || lng === null) return null;
-    const aLat = parseFloat(a.latitude);
-    const aLng = parseFloat(a.longitude);
-    if (isNaN(aLat) || isNaN(aLng)) return null;
-    return haversineMeters(lat, lng, aLat, aLng);
-  });
-
-  // HU-1.3: blocked if denied or outside radius
-  readonly canProceed = computed(() => {
-    const d = this.distanceMeters();
-    return !this.geoError() && d !== null && d <= CLOCK_RADIUS_METERS;
-  });
+  // HU-1.3 radius check temporarily disabled — only location permission blocks.
+  readonly canProceed = computed(() => !this.geoError());
 
   readonly clockType = signal<'in' | 'out'>('in');
 

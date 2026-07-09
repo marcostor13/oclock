@@ -85,29 +85,6 @@
           >
             Retry
           </button>
-        } @else if (!canProceed()) {
-          <!-- HU-1.3: outside 10 m radius — BLOCKING -->
-          <div class="rounded-xl border border-error-container bg-error-container/40 p-4 space-y-2">
-            <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-[20px] text-error" aria-hidden="true"
-                >location_searching</span
-              >
-              <p class="font-display text-label-sm font-semibold text-error">
-                Too far from location
-              </p>
-            </div>
-            <p class="font-body text-body-sm text-on-surface-variant">
-              You are {{ distanceMeters()! | number: '1.0-0' }} m away. You are too far from the
-              location to clock in/out.
-            </p>
-          </div>
-          <button
-            type="button"
-            (click)="retryGeo()"
-            class="w-full bg-surface-container text-on-surface border border-outline-variant font-display text-label-sm font-semibold px-6 py-3 rounded-xl hover:bg-surface-container-high transition-colors"
-          >
-            Retry
-          </button>
         }
       </div>
     }
